@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Оптимізація Фото</title>
+  <script src="https://unpkg.com/browser-image-compression"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f8fafc;
+      color: #111827;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      max-width: 1100px;
+      margin: 2rem;
+      gap: 2rem;
+      width: 100%;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .controls {
+      flex: 1 1 300px;
+      max-width: 500px;
+    }
+
+    .controls h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .controls input,
+    .controls button,
+    .controls select {
+      display: block;
+      width: 100%;
+      margin-bottom: 1rem;
+      padding: 0.8rem 1rem;
+      font-size: 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid #ccc;
+    }
+
+    .controls button {
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    .controls button:hover {
+      background-color: #1d4ed8;
+    }
+
+    #downloadLink {
+      display: none;
+      font-size: 1rem;
+      text-decoration: none;
+      color: #10b981;
+      margin-bottom: 1rem;
+      display: inline-block;
+    }
+
+    #downloadLink:hover {
+      text-decoration: underline;
+    }
+
+    #info {
+      font-size: 1rem;
+      background-color: #e0f2fe;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      color: #0369a1;
+      display: none;
+    }
+
+    .preview {
+      flex: 0 1 250px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #thumbnail {
+      max-width: 100%;
+      height: auto;
+      border-radius: 0.5rem;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      transition: transform 0.2s;
+      display: none;
+    }
+
+    #thumbnail:hover {
+      transform: scale(1.05);
+    }
+
+    /* Full image overlay */
+    #fullViewContainer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    #fullViewContainer img {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 0.5rem;
+    }
+
+    #closeBtn {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+      background-color: #f87171;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .preview {
+        align-items: center;
+        margin-top: 1rem;
+      }
+
+      #thumbnail {
+        max-width: 80%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="controls">
+      <h1>Оптимізація Фото</h1>
+      <input type="file" accept="image/*" id="uploadInput" />
+      <select id="formatSelect">
+        <option value="image/webp">WebP (найменший розмір)</option>
+        <option value="image/jpeg">JPEG</option>
+        <option value="image/png">PNG</option>
+      </select>
+      <button onclick="compressImage()">Оптимізувати</button>
+      <a id="downloadLink">⬇️ Завантажити оптимізоване фото</a>
+      <div id="info"></div>
+    </div>
+
+    <div class="preview">
+      <img id="thumbnail" />
+    </div>
+  </div>
+
+  <div id="fullViewContainer">
+    <button id="closeBtn">Закрити</button>
+    <img id="fullImage" />
+  </div>
+
+  <script>
+    let originalFile;
+    let fullImageUrl = "";
+
+    document.getElementById('uploadInput').addEventListener('change', function (event) {
+      originalFile = event.target.files[0];
+      document.getElementById('downloadLink').style.display = 'none';
+      document.getElementById('thumbnail').style.display = 'none';
+      document.getElementById('info').style.display = 'none';
+    });
+
+    async function compressImage() {
+      if (!originalFile) {
+        alert("Виберіть зображення!");
+        return;
+      }
+
+      const selectedFormat = document.getElementById('formatSelect').value;
+      const extension = selectedFormat.split('/')[1];
+
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 2000,
+        initialQuality: 0.9,
+        fileType: selectedFormat,
+        useWebWorker: true
+      };
+
+      try {
+        const originalSize = (originalFile.size / 1024).toFixed(2);
+        const compressedFile = await imageCompression(originalFile, options);
+        const compressedSize = (compressedFile.size / 1024).toFixed(2);
+        const percent = (((originalFile.size - compressedFile.size) / originalFile.size) * 100).toFixed(1);
+
+        const blobUrl = URL.createObjectURL(compressedFile);
+
+        // Thumbnail
+        const thumb = document.getElementById('thumbnail');
+        thumb.src = blobUrl;
+        thumb.style.display = 'block';
+
+        // Download
+        const downloadLink = document.getElementById('downloadLink');
+        downloadLink.href = blobUrl;
+        downloadLink.download = `optimized.${extension}`;
+        downloadLink.style.display = 'inline-block';
+
+        // Info
+        const info = document.getElementById('info');
+        info.innerHTML = `
+          🖼️ Початкова вага: <strong>${originalSize} КБ</strong><br>
+          ✅ Після оптимізації: <strong>${compressedSize} КБ</strong><br>
+          📉 Зменшено на: <strong>${percent}%</strong><br>
+          📂 Формат: <strong>${extension.toUpperCase()}</strong>
+        `;
+        info.style.display = 'block';
+
+        fullImageUrl = blobUrl;
+      } catch (error) {
+        console.error(error);
+        alert("Помилка при стисненні.");
+      }
+    }
+
+    document.getElementById('thumbnail').addEventListener('click', () => {
+      document.getElementById('fullViewContainer').style.display = 'flex';
+      document.getElementById('fullImage').src = fullImageUrl;
+    });
+
+    document.getElementById('closeBtn').addEventListener('click', () => {
+      document.getElementById('fullViewContainer').style.display = 'none';
+    });
+  </script>
+</body>
+
+</html>
