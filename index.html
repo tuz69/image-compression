@@ -3,124 +3,126 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Оптимізація Фото</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Оптимізація Фото з підтримкою ZIP</title>
   <script src="https://unpkg.com/browser-image-compression"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
       background-color: #f8fafc;
       color: #111827;
       margin: 0;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      min-height: 100vh;
+      padding: 2rem;
     }
 
-    .container {
-      display: flex;
-      flex-direction: row;
-      flex-wrap: wrap;
-      max-width: 1100px;
-      margin: 2rem;
-      gap: 2rem;
-      width: 100%;
-      justify-content: center;
-      align-items: flex-start;
+    h1 {
+      font-size: 2rem;
+      text-align: center;
     }
 
     .controls {
-      flex: 1 1 300px;
-      max-width: 500px;
+      max-width: 800px;
+      margin: auto;
+      margin-bottom: 2rem;
+      text-align: center;
+      border: 2px dashed #94a3b8;
+      padding: 2rem;
+      border-radius: 1rem;
+      background-color: #fff;
     }
 
-    .controls h1 {
-      font-size: 2rem;
-      margin-bottom: 1rem;
+    .controls.dragover {
+      background-color: #e0f2fe;
     }
 
-    .controls input,
-    .controls button,
-    .controls select {
-      display: block;
-      width: 100%;
-      margin-bottom: 1rem;
-      padding: 0.8rem 1rem;
+    input,
+    select,
+    button {
+      padding: 0.7rem 1rem;
       font-size: 1rem;
+      margin: 0.5rem;
       border-radius: 0.5rem;
       border: 1px solid #ccc;
     }
 
-    .controls button {
+    button {
       background-color: #2563eb;
       color: white;
       border: none;
       cursor: pointer;
     }
 
-    .controls button:hover {
+    button:hover {
       background-color: #1d4ed8;
     }
 
-    #downloadLink {
-      display: none;
-      font-size: 1rem;
-      text-decoration: none;
-      color: #10b981;
-      margin-bottom: 1rem;
-      display: inline-block;
-    }
-
-    #downloadLink:hover {
-      text-decoration: underline;
-    }
-
-    #info {
-      font-size: 1rem;
-      background-color: #e0f2fe;
-      padding: 1rem;
-      border-radius: 0.5rem;
-      color: #0369a1;
-      display: none;
-    }
-
-    .preview {
-      flex: 0 1 250px;
+    .gallery {
       display: flex;
-      flex-direction: column;
-      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 2rem;
+      max-width: 900px;
+      margin: auto;
     }
 
-    #thumbnail {
-      max-width: 100%;
-      height: auto;
+    .image-card {
+      background-color: white;
       border-radius: 0.5rem;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-      cursor: pointer;
-      transition: transform 0.2s;
-      display: none;
+      padding: 1rem;
+      max-width: 250px;
+      text-align: center;
+      flex-grow: 1;
+      flex-basis: 250px;
     }
 
-    #thumbnail:hover {
+    .image-card img {
+      max-width: 100%;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .image-card img:hover {
       transform: scale(1.05);
     }
 
-    /* Full image overlay */
+    .info {
+      font-size: 0.9rem;
+      background-color: #e0f2fe;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+      border-radius: 0.5rem;
+      color: #0369a1;
+    }
+
+    a.download {
+      display: inline-block;
+      margin-top: 0.5rem;
+      color: #10b981;
+      font-size: 0.95rem;
+      text-decoration: none;
+    }
+
+    a.download:hover {
+      text-decoration: underline;
+    }
+
     #fullViewContainer {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background-color: rgba(0, 0, 0, 0.8);
+      background: rgba(0, 0, 0, 0.8);
       display: none;
-      justify-content: center;
       align-items: center;
+      justify-content: center;
       z-index: 1000;
     }
 
-    #fullViewContainer img {
+    #fullImage {
       max-width: 90%;
       max-height: 90%;
       border-radius: 0.5rem;
@@ -130,52 +132,39 @@
       position: absolute;
       top: 20px;
       right: 30px;
-      background-color: #f87171;
+      background: #f87171;
       color: white;
-      padding: 10px 15px;
       border: none;
+      padding: 10px 15px;
       border-radius: 0.5rem;
       cursor: pointer;
     }
 
-    /* Responsive */
     @media (max-width: 768px) {
-      .container {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .preview {
-        align-items: center;
-        margin-top: 1rem;
-      }
-
-      #thumbnail {
-        max-width: 80%;
+      .image-card {
+        max-width: 90%;
       }
     }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <div class="controls">
-      <h1>Оптимізація Фото</h1>
-      <input type="file" accept="image/*" id="uploadInput" />
-      <select id="formatSelect">
-        <option value="image/webp">WebP (найменший розмір)</option>
-        <option value="image/jpeg">JPEG</option>
-        <option value="image/png">PNG</option>
-      </select>
-      <button onclick="compressImage()">Оптимізувати</button>
-      <a id="downloadLink">⬇️ Завантажити оптимізоване фото</a>
-      <div id="info"></div>
-    </div>
+  <h1>Оптимізація Фото (Підтримка ZIP)</h1>
 
-    <div class="preview">
-      <img id="thumbnail" />
-    </div>
+  <div class="controls" id="dropArea">
+    <p><strong>Перетягніть файли (фото або ZIP) або виберіть вручну</strong></p>
+    <input type="file" id="uploadInput" accept="image/*,.zip" multiple />
+    <br />
+    <select id="formatSelect">
+      <option value="image/webp">WebP (найменший розмір)</option>
+      <option value="image/jpeg">JPEG</option>
+      <option value="image/png">PNG</option>
+    </select>
+    <button onclick="compressImages()">Оптимізувати всі</button>
+    <button onclick="downloadAllAsZip()">⬇️ Завантажити ZIP усіх</button>
   </div>
+
+  <div class="gallery" id="gallery"></div>
 
   <div id="fullViewContainer">
     <button id="closeBtn">Закрити</button>
@@ -183,76 +172,135 @@
   </div>
 
   <script>
-    let originalFile;
-    let fullImageUrl = "";
+    const gallery = document.getElementById("gallery");
+    const input = document.getElementById("uploadInput");
+    const dropArea = document.getElementById("dropArea");
+    let files = [];
+    let results = [];
 
-    document.getElementById('uploadInput').addEventListener('change', function (event) {
-      originalFile = event.target.files[0];
-      document.getElementById('downloadLink').style.display = 'none';
-      document.getElementById('thumbnail').style.display = 'none';
-      document.getElementById('info').style.display = 'none';
+    dropArea.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropArea.classList.add("dragover");
+    });
+    dropArea.addEventListener("dragleave", () => dropArea.classList.remove("dragover"));
+    dropArea.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      dropArea.classList.remove("dragover");
+      await handleFiles(Array.from(e.dataTransfer.files));
     });
 
-    async function compressImage() {
-      if (!originalFile) {
-        alert("Виберіть зображення!");
+    input.addEventListener("change", async e => {
+      await handleFiles(Array.from(e.target.files));
+    });
+
+    async function handleFiles(selectedFiles) {
+      gallery.innerHTML = "";
+      files = [];
+      results = [];
+
+      for (const file of selectedFiles) {
+        if (file.type === "application/zip" || file.name.endsWith(".zip")) {
+          // Розпакуємо ZIP
+          try {
+            const zip = await JSZip.loadAsync(file);
+            for (const filename of Object.keys(zip.files)) {
+              if (!zip.files[filename].dir) {
+                const ext = filename.split(".").pop().toLowerCase();
+                if (["jpg", "jpeg", "png", "webp", "gif", "bmp"].includes(ext)) {
+                  const fileData = await zip.files[filename].async("blob");
+                  const blobFile = new File([fileData], filename, { type: "image/" + ext });
+                  files.push(blobFile);
+                }
+              }
+            }
+          } catch (err) {
+            alert("Помилка розпаковки ZIP файлу: " + err);
+            console.error(err);
+          }
+        } else if (file.type.startsWith("image/")) {
+          files.push(file);
+        }
+      }
+
+      if (files.length === 0) {
+        alert("Файлів для обробки не знайдено.");
         return;
       }
 
-      const selectedFormat = document.getElementById('formatSelect').value;
-      const extension = selectedFormat.split('/')[1];
+      alert(`Додано файлів для оптимізації: ${files.length}`);
+      gallery.innerHTML = "";
+      results = [];
+    }
 
-      const options = {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 2000,
-        initialQuality: 0.9,
-        fileType: selectedFormat,
-        useWebWorker: true
-      };
+    async function compressImages() {
+      if (!files.length) {
+        alert("Будь ласка, виберіть або додайте файли для оптимізації.");
+        return;
+      }
+      const format = document.getElementById("formatSelect").value;
+      const ext = format.split("/")[1];
+      results = [];
+      gallery.innerHTML = "";
 
-      try {
-        const originalSize = (originalFile.size / 1024).toFixed(2);
-        const compressedFile = await imageCompression(originalFile, options);
-        const compressedSize = (compressedFile.size / 1024).toFixed(2);
-        const percent = (((originalFile.size - compressedFile.size) / originalFile.size) * 100).toFixed(1);
+      for (let file of files) {
+        const options = {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 2000,
+          initialQuality: 0.9,
+          fileType: format,
+          useWebWorker: true
+        };
+        const originalSize = (file.size / 1024).toFixed(2);
+        try {
+          const compressed = await imageCompression(file, options);
+          const newSize = (compressed.size / 1024).toFixed(2);
+          const percent = (((file.size - compressed.size) / file.size) * 100).toFixed(1);
+          const url = URL.createObjectURL(compressed);
+          const name = `optimized_${file.name.replace(/\.[^/.]+$/, "")}.${ext}`;
 
-        const blobUrl = URL.createObjectURL(compressedFile);
+          results.push({ blob: compressed, name });
 
-        // Thumbnail
-        const thumb = document.getElementById('thumbnail');
-        thumb.src = blobUrl;
-        thumb.style.display = 'block';
-
-        // Download
-        const downloadLink = document.getElementById('downloadLink');
-        downloadLink.href = blobUrl;
-        downloadLink.download = `optimized.${extension}`;
-        downloadLink.style.display = 'inline-block';
-
-        // Info
-        const info = document.getElementById('info');
-        info.innerHTML = `
-          🖼️ Початкова вага: <strong>${originalSize} КБ</strong><br>
-          ✅ Після оптимізації: <strong>${compressedSize} КБ</strong><br>
-          📉 Зменшено на: <strong>${percent}%</strong><br>
-          📂 Формат: <strong>${extension.toUpperCase()}</strong>
-        `;
-        info.style.display = 'block';
-
-        fullImageUrl = blobUrl;
-      } catch (error) {
-        console.error(error);
-        alert("Помилка при стисненні.");
+          const card = document.createElement("div");
+          card.className = "image-card";
+          card.innerHTML = `
+            <img src="${url}" alt="preview" onclick="openFull('${url}')" />
+            <div class="info">
+              📁 ${name}<br>
+              🔽 ${originalSize} → ${newSize} КБ<br>
+              📉 -${percent}%
+            </div>
+            <a href="${url}" class="download" download="${name}">⬇️ Завантажити</a>
+          `;
+          gallery.appendChild(card);
+        } catch (e) {
+          alert("Помилка обробки одного з файлів.");
+          console.error(e);
+        }
       }
     }
 
-    document.getElementById('thumbnail').addEventListener('click', () => {
-      document.getElementById('fullViewContainer').style.display = 'flex';
-      document.getElementById('fullImage').src = fullImageUrl;
-    });
+    async function downloadAllAsZip() {
+      if (!results.length) {
+        alert("Немає оптимізованих файлів для скачування.");
+        return;
+      }
+      const zip = new JSZip();
+      for (const res of results) {
+        zip.file(res.name, res.blob);
+      }
+      const content = await zip.generateAsync({ type: "blob" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(content);
+      link.download = "optimized_images.zip";
+      link.click();
+    }
 
-    document.getElementById('closeBtn').addEventListener('click', () => {
-      document.getElementById('fullViewContainer').style.display = 'none';
+    function openFull(src) {
+      document.getElementById("fullImage").src = src;
+      document.getElementById("fullViewContainer").style.display = "flex";
+    }
+    document.getElementById("closeBtn").addEventListener("click", () => {
+      document.getElementById("fullViewContainer").style.display = "none";
     });
   </script>
 </body>
