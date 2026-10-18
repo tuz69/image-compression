@@ -39,6 +39,11 @@
       background-color: #e0f2fe;
     }
 
+    .filename-option {
+      display: block;
+      margin: 0.5rem;
+    }
+
     input,
     select,
     button {
@@ -163,6 +168,10 @@
       <option value="image/jpeg">JPEG</option>
       <option value="image/png">PNG</option>
     </select>
+    <label class="filename-option">
+      <input type="checkbox" id="keepOriginalName" checked />
+      Зберігати початкову назву файлу
+    </label>
     <button onclick="compressImages()">Оптимізувати всі</button>
     <button onclick="downloadAllAsZip()">⬇️ Завантажити ZIP усіх</button>
   </div>
@@ -241,7 +250,7 @@
         return;
       }
       const format = document.getElementById("formatSelect").value;
-      const ext = format.split("/")[1];
+      const keepOriginalName = document.getElementById("keepOriginalName").checked;
       results = [];
       gallery.innerHTML = "";
 
@@ -259,7 +268,12 @@
           const newSize = (compressed.size / 1024).toFixed(2);
           const percent = (((file.size - compressed.size) / file.size) * 100).toFixed(1);
           const url = URL.createObjectURL(compressed);
-          const name = `optimized_${file.name.replace(/\.[^/.]+$/, "")}.${ext}`;
+          const ext = (compressed.type || format).split("/")[1];
+          const originalExt = file.name.match(/\.([^/.]+)$/)?.[1].toLowerCase();
+          const sameFormat = originalExt === ext || (ext === "jpeg" && originalExt === "jpg");
+          const name = keepOriginalName && sameFormat
+            ? file.name
+            : `${keepOriginalName ? "" : "optimized_"}${file.name.replace(/\.[^/.]+$/, "")}.${ext}`;
 
           results.push({ blob: compressed, name });
 
@@ -268,12 +282,14 @@
           card.innerHTML = `
             <img src="${url}" alt="preview" onclick="openFull('${url}')" />
             <div class="info">
-              📁 ${name}<br>
+              📁 <span class="filename"></span><br>
               🔽 ${originalSize} → ${newSize} КБ<br>
               📉 -${percent}%
             </div>
-            <a href="${url}" class="download" download="${name}">⬇️ Завантажити</a>
+            <a href="${url}" class="download">⬇️ Завантажити</a>
           `;
+          card.querySelector(".filename").textContent = name;
+          card.querySelector(".download").download = name;
           gallery.appendChild(card);
         } catch (e) {
           alert("Помилка обробки одного з файлів.");
@@ -289,6 +305,10 @@
       }
       const zip = new JSZip();
       for (const res of results) {
+        if (zip.file(res.name)) {
+          alert(`Не вдалося створити ZIP: кілька файлів мають однакову назву «${res.name}». Завантажте їх окремо або змініть початкові назви.`);
+          return;
+        }
         zip.file(res.name, res.blob);
       }
       const content = await zip.generateAsync({ type: "blob" });
